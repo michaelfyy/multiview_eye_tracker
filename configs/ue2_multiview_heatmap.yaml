@@ -1,0 +1,90 @@
+# configs/ue2_multiview.yaml
+
+data:
+  dataset: "ue2_multiview"
+  # >>>>>>>>>>>> SET YOUR DATA DIR (contains images & jsons) <<<<<<<<<<<<<
+  data_dir: "C:/Users/michaelfeng/Documents/IML/data/10k_multiviewEER/imgs"
+  # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  target_size: [224, 224] # Target input size HxW
+  num_views: 4
+  num_workers: 4
+  pin_memory: true
+  train_split: 0.8 # Ratio of data used for training
+  heatmap:
+    enabled: true # Enable heatmap generation/prediction
+    sigma: 1.5 # Gaussian sigma
+    output_res: 64 # Heatmap output resolution HxW
+
+model:
+  base_class: "ConfigurableMultiViewModel"
+  backbone:
+    type: "dinov2_vits14" # Example: mobilevit_s, efficientvit_m0, dinov2_vits14, swin_tiny_patch4_window7_224
+    pretrained: true
+    freeze: true
+    kwargs: {}
+  fusion:
+    type: "attention" # Options: none, concat, attention
+    params: { depth: 2, heads: 6, mlp_ratio: 4.0 } # dim inferred automatically
+  head_2d:
+    type: "heatmap" # Options: regression, heatmap
+    use_separate_heads: true
+    params: { decoder_channels: [256, 128] } # Example
+    # params: { hidden_dims: [256] } # Smaller regression head
+  head_3d:
+    type: "mlp" # Regression MLP
+    params: { hidden_dims: [512, 256] } # in_features inferred
+
+training:
+  device: "cuda" # or "cpu"
+  batch_size: 4
+  num_epochs: 1
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  early_stop: 7 # Set to 0 to disable
+  from_checkpoint: null # Path, 'best', 'latest', or null
+  scheduler:
+    type: "plateau" # Options: none, cosine, step, plateau
+    params:
+      # For plateau:
+      mode: "min"
+      factor: 0.2
+      patience: 5
+      threshold: 0.001
+      verbose: true
+      # --- Other scheduler params (if used) ---
+      # T_max: 100 # For cosine
+      # eta_min: 1e-6 # For cosine
+      # step_size: 20 # For step
+      # gamma: 0.1 # For step
+
+loss:
+  pupil_heatmap: { type: "mse", weight: 1.0 }
+  # pupil_2d: { type: "l1", weight: 1.0 } # Use if head_2d.type is 'regression'
+  pupil_3d: { type: "mse", weight: 1.0 }
+  gaze_endpoint_3d: { type: "mse", weight: 1.0 }
+
+logging:
+  project_name: "MultiviewEyeTracking"
+  run_name: null # Auto-generated if null
+  log_interval: 500
+  log_dir: "./runs" # Base directory for saving training runs
+
+# --- NEW Prediction Section ---
+prediction:
+  # Path to the checkpoint file relative to the run's checkpoint dir,
+  # or an absolute path, or 'best'/'latest'.
+  # Can be overridden by --checkpoint arg in predict script.
+  checkpoint: "best"
+  # Directory containing the 4 camera videos (e.g., e1.mp4, e2.mp4...)
+  # >>>>>>>>>>>> SET YOUR VIDEO ROOT <<<<<<<<<<<<<
+  video_root: "C:/Users/michaelfeng/Documents/IML/data/EyeVideos"
+  # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  # Subfolder relative to video_root containing annotation XML files (e.g., e1_annotations.xml).
+  annotations_folder: "annotations"
+  # Directory to save prediction results (videos, plots, jsons).
+  # If null, defaults to 'predictions/predict_TIMESTAMP' inside the training run directory.
+  output_dir: null
+  # Frame rate for saving output annotated videos.
+  frame_rate: 30
+  # Device override for prediction ('cuda', 'cpu', null to use training device)
+  device: cuda
