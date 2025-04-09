@@ -141,7 +141,7 @@ def visualize_predictions_2d(model, dataloader, device, output_dir, epoch, mode=
 
     fig.suptitle(f"{mode} Epoch {epoch} - 2D Predictions (GT Lime O, Pred Red X)", fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    vis_path = os.path.join(output_dir, f"epoch_{epoch}_predictions_2d.png")
+    vis_path = os.path.join(output_dir, f"{mode.lower()}_epoch_{epoch}_predictions_2d.png")
     try: plt.savefig(vis_path); logger.info(f"Prediction visualization saved to {vis_path}")
     except Exception as e: logger.error(f"Failed to save prediction visualization: {e}")
     plt.close(fig)
