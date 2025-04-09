@@ -15,9 +15,9 @@ class RegressionHead(nn.Module):
         layers = []
         prev_dim = in_features
         for h_dim in hidden_dims:
-            layers.extend([nn.Linear(prev_dim, h_dim), activation()])
+            layers.extend([nn.Dropout(p=0.5, inplace=True), nn.Linear(prev_dim, h_dim), activation()])
             prev_dim = h_dim
-        layers.append(nn.Linear(prev_dim, out_features))
+        layers.extend([nn.Dropout(p=0.5, inplace=True), nn.Linear(prev_dim, out_features)])
         self.mlp = nn.Sequential(*layers)
         logger.info(f"Initialized RegressionHead: in={in_features}, out={out_features}, hidden={hidden_dims}")
 
