@@ -10,14 +10,27 @@ logger = logging.getLogger(__name__)
 # (RegressionHead remains the same)
 class RegressionHead(nn.Module):
     """Simple MLP head for coordinate regression."""
-    def __init__(self, in_features, out_features, hidden_dims=[512], activation=nn.ReLU):
+    def __init__(self, in_features, out_features, hidden_dims=[512], activation=nn.ReLU, dropout_p=0.3):
+        """
+        Args:
+            in_features (int): Number of input features.
+            out_features (int): Number of output coordinates/values.
+            hidden_dims (list[int]): List of hidden layer dimensions.
+            activation (nn.Module): Activation function class (ensure inplace=False).
+            dropout_p (float): Dropout probability (set to 0.0 to disable).
+        """
         super().__init__()
         layers = []
         prev_dim = in_features
+
         for h_dim in hidden_dims:
-            layers.extend([nn.Dropout(p=0.5, inplace=True), nn.Linear(prev_dim, h_dim), activation()])
+            layers.append(nn.Linear(prev_dim, h_dim))
+            layers.append(activation())
+            if dropout_p > 0: # Add dropout if prob > 0
+                layers.append(nn.Dropout(p=dropout_p)) # No inplace=True
             prev_dim = h_dim
-        layers.extend([nn.Dropout(p=0.5, inplace=True), nn.Linear(prev_dim, out_features)])
+
+        layers.append(nn.Linear(prev_dim, out_features))
         self.mlp = nn.Sequential(*layers)
         logger.info(f"Initialized RegressionHead: in={in_features}, out={out_features}, hidden={hidden_dims}")
 
